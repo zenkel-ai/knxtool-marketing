@@ -1,0 +1,40 @@
+name: Deploy to Hetzner
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH to Hetzner
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: www728.your-server.de
+          username: bzipjy
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 222
+          script: |
+            set -e
+            # Gleiches Web-Root-Prinzip wie beim knxtool-Repo: public_html ist der
+            # tatsächlich von Apache ausgelieferte Pfad, nicht $HOME/html direkt.
+            DEPLOY_DIR="$HOME/public_html/html/knxtool-website"
+
+            mkdir -p "$(dirname "$DEPLOY_DIR")"
+
+            if [ -d "$DEPLOY_DIR/.git" ]; then
+              echo "→ Pulling latest changes..."
+              cd "$DEPLOY_DIR"
+              git pull origin main
+            else
+              echo "→ Cloning repository (removing any stale non-git content first)..."
+              rm -rf "$DEPLOY_DIR"
+              git clone https://github.com/zenkel-ai/knxtool-marketing.git "$DEPLOY_DIR"
+            fi
+
+            echo "✓ Deployment erfolgreich: knx-toolbox.de"
